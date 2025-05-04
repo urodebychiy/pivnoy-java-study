@@ -1,0 +1,53 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <!--JUNIOR-разработчик. Чел, которому нужен другой чел и опора, чтобы он решал задачки.-->
+    <!--MIDDLE-разработчик. Чел, которому не нужен другой чел. Он может самостоятельно решить задачки.-->
+    <!--SENIOR-разработчик. Чел, которому не нужен другой чел. Чел, который может самостоятельно решить задачки. Чел, который решает задачки самым эффективным способом.-->
+    <changeSet id="create-table-author" author="poltoraha_pivka">
+        <createTable tableName="app_user">
+            <column name="username" type="varchar(128)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="password" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_type" type="varchar(31)"/>
+            <!--            todo мб таску сделать прикрутить подтверждение по почте-->
+            <column name="enabled" type="boolean"/>
+        </createTable>
+
+        <createTable tableName="roles">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="user_roles">
+            <column name="username" type="varchar(128)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="user_roles_pk"/>
+            </column>
+            <column name="role_id" type="bigint">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="user_roles_pk"/>
+            </column>
+        </createTable>
+
+<!--        <addForeignKeyConstraint-->
+<!--                constraintName="FK_user_roles_role"-->
+<!--                baseTableName="user_roles"-->
+<!--                baseColumnNames="role_id"-->
+<!--                referencedTableName="roles"-->
+<!--                referencedColumnNames="id"/>-->
+<!--        <addForeignKeyConstraint-->
+<!--                constraintName="FK_user_roles_users"-->
+<!--                baseTableName="user_roles"-->
+<!--                baseColumnNames="username"-->
+<!--                referencedTableName="app_user"-->
+<!--                referencedColumnNames="username"/>-->
+    </changeSet>
+
+</databaseChangeLog>

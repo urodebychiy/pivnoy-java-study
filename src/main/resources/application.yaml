@@ -1,0 +1,63 @@
+logging:
+  level:
+    org.apache.kafka: WARN  # Уровень логирования для Kafka
+
+spring:
+  application:
+    name: app
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+  liquibase:
+    change-log: classpath:db/liquibase-master.xml
+    enabled: true
+    drop-first: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: my-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+web:
+  base-url: localhost:9090
+  connection-timeout: 2s
+  read-timeout: 2s
+
+book-facts:
+  facts:
+    - id: "Эротика"
+      fact-desc: "Наличие описаний эротических сцен"
+    - id: "Психоз"
+      fact-desc: "Наличие сцен приступов психоза, либо героев с психозом"
+    - id: "Классика"
+      fact-desc: "Классическое произведение известного писателя"
+    - id: "Роман-эпопея"
+      fact-desc: "Многотомное классическое произведение"
+    - id: "Киберпанк"
+      fact-desc: "Хуйня постная с неоновым светом"
+    - id: "Попаданцы"
+      fact-desc: "Индикатор долбаёбов, если кто-то выбирает этот тег - бан нахуй. Особенно книга Валерий Кипелов при дворе Царя Грозного"
+    - id: "Война"
+      fact-desc: "Основное действие сюжета происходит в военную пору"
+    - id: "Алкоголь"
+      fact-desc: "Многие действия персонажей так или иначе связаны с действием алкоголя"
+    - id: "Билиберда"
+      fact-desc: "Тег для тех, кто мастурбирует больше 3х раз в день"
+    - id: "Средневековье"
+      fact-desc: "Действие сюжета происходит в средние века"
+    - id: "Мерзость"
+      fact-desc: "В повествовании часто присутствуют мерзкие сцены, как у Майкл Джира ПОтребитель и Чака Паланика со сценой где челу жопу в фильтр бассейна засосало"

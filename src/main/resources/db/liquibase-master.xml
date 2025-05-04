@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <include file="changelog/v1.0.0_init-database.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/v1.0.1_add_new_table_quote.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/v1.0.2_add_new_table_review.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/v1.0.3_add_security_tables.xml" relativeToChangelogFile="true"/>
+<!--    инклудим данные для базы-->
+    <include file="init-data/v1.0.0_init_data_author.xml" relativeToChangelogFile="true"/>
+    <include file="init-data/v1.0.1_init_data_book.xml" relativeToChangelogFile="true"/>
+<!--    <include file="init-data/v1.0.2_init_data_user.xml" relativeToChangelogFile="true"/>-->
+    <include file="init-data/v1.0.3_init_data_reader.xml" relativeToChangelogFile="true"/>
+    <include file="init-data/v1.0.4_init_data_security_tables.xml" relativeToChangelogFile="true"/>
+</databaseChangeLog>

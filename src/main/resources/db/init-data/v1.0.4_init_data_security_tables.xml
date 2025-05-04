@@ -1,0 +1,41 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <!--JUNIOR-разработчик. Чел, которому нужен другой чел и опора, чтобы он решал задачки.-->
+    <!--MIDDLE-разработчик. Чел, которому не нужен другой чел. Он может самостоятельно решить задачки.-->
+    <!--SENIOR-разработчик. Чел, которому не нужен другой чел. Чел, который может самостоятельно решить задачки. Чел, который решает задачки самым эффективным способом.-->
+    <changeSet id="add-data-reader" author="poltoraha_pivka">
+        <insert tableName="roles">
+            <column name="id" valueNumeric="1"/>
+            <column name="name" value="USER"/>
+        </insert>
+        <insert tableName="roles">
+            <column name="id" valueNumeric="2"/>
+            <column name="name" value="ADMIN"/>
+        </insert>
+
+        <insert tableName="app_user">
+            <column name="username" value="poltoraha_pivka"/>
+            <column name="password" value="{noop}1"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="user_type" value="READER"/>
+        </insert>
+        <insert tableName="app_user">
+            <column name="username" value="username"/>
+            <column name="password" value="password"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="user_type" value="READER"/>
+        </insert>
+
+        <insert tableName="user_roles">
+            <column name="username" value="poltoraha_pivka"/>
+            <column name="role_id" valueNumeric="2"/> <!-- ROLE_ADMIN -->
+        </insert>
+        <insert tableName="user_roles">
+            <column name="username" value="poltoraha_pivka"/>
+            <column name="role_id" valueNumeric="1"/> <!-- ROLE_USER -->
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>
