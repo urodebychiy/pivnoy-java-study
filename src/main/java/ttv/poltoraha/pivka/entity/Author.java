@@ -1,7 +1,11 @@
 package ttv.poltoraha.pivka.entity;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
@@ -19,4 +23,7 @@ public class Author {
     @OneToMany(mappedBy="author")
     @ToString.Exclude
     private List<Book> books;
+
+    @OneToMany(mappedBy = "author")
+    private List<Pivo> pivos;
 }
