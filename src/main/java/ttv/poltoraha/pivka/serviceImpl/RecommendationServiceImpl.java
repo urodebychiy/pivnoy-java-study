@@ -5,7 +5,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ttv.poltoraha.pivka.entity.*;
+import ttv.poltoraha.pivka.entity.Author;
+import ttv.poltoraha.pivka.entity.Book;
+import ttv.poltoraha.pivka.entity.Quote;
+import ttv.poltoraha.pivka.entity.Reading;
 import ttv.poltoraha.pivka.repository.BookRepository;
 import ttv.poltoraha.pivka.repository.ReaderRepository;
 import ttv.poltoraha.pivka.repository.ReadingRepository;
@@ -98,7 +101,7 @@ public class RecommendationServiceImpl implements RecommendationService {
      */
     @Override
     public List<Quote> recommendQuoteByBook(Integer book_id) {
-        if (bookRepository.existsById(book_id)) {
+        if (!bookRepository.existsById(book_id)) {
             throw new EntityNotFoundException(String.format("Entity book with id = %s was not found", book_id));
         }
 
