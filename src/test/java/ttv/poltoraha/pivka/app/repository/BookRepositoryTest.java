@@ -26,12 +26,6 @@ class BookRepositoryTest {
     @BeforeEach
     void setUp() {
 
-        entityManager.clear();
-    }
-
-    @Test
-    void testFindBooksByAuthorLastNameWithHighestRating() {
-
         Author author1 = Author.builder()
                 .fullName("Иванов")
                 .avgRating(4.5)
@@ -82,6 +76,11 @@ class BookRepositoryTest {
         entityManager.persist(book4);
         entityManager.flush();
 
+        entityManager.clear();
+    }
+
+    @Test
+    void testFindBooksByAuthorLastNameWithHighestRating() {
 
         List<Book> books = bookRepository.findBooksByAuthorLastName("%Иванов%");
 
