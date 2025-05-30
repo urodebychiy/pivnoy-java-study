@@ -12,8 +12,12 @@ import java.util.Set;
 @DiscriminatorColumn(name = "user_type", discriminatorType = DiscriminatorType.STRING)
 public class MyUser {
     @Id
+    @Column(unique = true, nullable = false)
     private String username;
     private String password;
+
+    @Column(name = "migrated_user")
+    private boolean migratedUser;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinTable(
