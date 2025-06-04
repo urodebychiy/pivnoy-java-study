@@ -1,6 +1,9 @@
 package ttv.poltoraha.pivka.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,8 +24,15 @@ public class AuthorController {
     private final AuthorService authorService;
 
     @PostMapping("/create")
-    public void createAuthor(@RequestBody Author author) {
-        authorService.create(author);
+    public ResponseEntity<Void> createAuthor(@RequestBody Author author) {
+        try {
+            authorService.create(author);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping("/delete")
