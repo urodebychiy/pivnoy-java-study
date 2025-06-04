@@ -1,5 +1,6 @@
 package ttv.poltoraha.pivka.entity;
 
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
