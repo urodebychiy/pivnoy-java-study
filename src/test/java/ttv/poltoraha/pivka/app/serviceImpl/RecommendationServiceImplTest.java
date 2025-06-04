@@ -3,115 +3,101 @@ package ttv.poltoraha.pivka.app.serviceImpl;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-import ttv.poltoraha.pivka.controller.ReaderController;
-import ttv.poltoraha.pivka.entity.Author;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import ttv.poltoraha.pivka.entity.Book;
 import ttv.poltoraha.pivka.entity.Quote;
-import ttv.poltoraha.pivka.entity.Reader;
-import ttv.poltoraha.pivka.entity.Reading;
-import ttv.poltoraha.pivka.repository.AuthorRepository;
 import ttv.poltoraha.pivka.repository.BookRepository;
+import ttv.poltoraha.pivka.repository.QuoteRepository;
 import ttv.poltoraha.pivka.repository.ReaderRepository;
 import ttv.poltoraha.pivka.repository.ReadingRepository;
-import ttv.poltoraha.pivka.service.ReaderService;
-import ttv.poltoraha.pivka.service.RecommendationService;
+import ttv.poltoraha.pivka.service.AuthorService;
+import ttv.poltoraha.pivka.serviceImpl.RecommendationServiceImpl;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static ttv.poltoraha.pivka.app.util.TestConst.USERNAME;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY) // Используйте H2 вместо реальной БД
-@Transactional // Обеспечивает откат транзакций после каждого теста
+@ExtendWith(MockitoExtension.class)
 class RecommendationServiceImplTest {
-    @Autowired
-    private RecommendationService recommendationService;
-    @Autowired
-    private ReaderService readerService;
-    @Autowired
+
+    @Mock
     private ReaderRepository readerRepository;
-    @Autowired
+
+    @Mock
+    private AuthorService authorService;
+
+    @Mock
     private BookRepository bookRepository;
-    @Autowired
-    private ReaderController readerController;
-    @Autowired
-    private AuthorRepository authorRepository;
-    @Autowired
+
+    @Mock
     private ReadingRepository readingRepository;
 
-    private Reader reader;
+    @Mock
+    private QuoteRepository quoteRepository;
+
+    @InjectMocks
+    private RecommendationServiceImpl recommendationService;
+
     private Book book;
-    private Author author;
-    private Reading reading;
+    private Quote quote1;
+    private Quote quote2;
 
     @BeforeEach
     void setUp() {
-
-        reader = new Reader();
-        reader.setUsername(USERNAME);
-        reader.setPassword("132");
-
-        readerRepository.save(reader);
-
-
-        author = new Author();
-        author.setId(1);
-
-        authorRepository.save(author);
-
-
         book = new Book();
         book.setId(1);
-        book.setAuthor(author);
 
-        bookRepository.save(book);
+        quote1 = new Quote();
+        quote1.setId(1);
+        quote1.setBook(book);
+        quote1.setAvgRating(4.5);
 
-
-        reading = new Reading();
-        reading.setReader(reader);
-        reading.setBook(book);
-
-        readingRepository.save(reading);
-
-
-
-        readerService.addFinishedBook(USERNAME, 1);
-
-        readerController.addQuote(USERNAME, 1, "quote");
+        quote2 = new Quote();
+        quote2.setId(2);
+        quote2.setBook(book);
+        quote2.setAvgRating(3.0);
     }
 
     @Test
-    void checkRecommendQuote() {
-        List<Quote> quotes = recommendationService.recommendQuoteByBook(1);
+    void recommendQuoteByBook_Success_ReturnsSortedQuotes() {
+        when(bookRepository.existsById(1)).thenReturn(true);
+        when(quoteRepository.findTop5ByBookIdOrderByAvgRatingDesc(1)).thenReturn(List.of(quote1, quote2));
 
-        assertEquals(1, quotes.size(), "Ожидается одна цитата");
-        assertEquals("quote", quotes.get(0).getText(), "Текст цитаты должен быть 'quote'");
+        List<Quote> result = recommendationService.recommendQuoteByBook(1);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(1);
+        assertThat(result.get(0).getAvgRating()).isEqualTo(4.5);
+        assertThat(result.get(1).getId()).isEqualTo(2);
+        assertThat(result.get(1).getAvgRating()).isEqualTo(3.0);
+        verify(quoteRepository).findTop5ByBookIdOrderByAvgRatingDesc(1);
     }
 
     @Test
-    void whenBookDoesNotFound_thenThrowEntityNotFoundException() {
-        assertThatThrownBy(() -> recommendationService.recommendQuoteByBook(999))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessage("Entity book with id = 999 was not found");
+    void recommendQuoteByBook_BookNotFound_ThrowsException() {
+        when(bookRepository.existsById(1)).thenReturn(false);
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> recommendationService.recommendQuoteByBook(1));
+        assertThat(exception.getMessage()).contains("book", "1");
+        verify(quoteRepository, never()).findTop5ByBookIdOrderByAvgRatingDesc(1);
     }
 
     @Test
-    void whenReaderHasNotQuotes_thenReturnEmptyList() {
-        reader.setQuotes(new ArrayList<>());
-        readerRepository.save(reader);
+    void recommendQuoteByBook_NoQuotes_ReturnsEmptyList() {
+        when(bookRepository.existsById(1)).thenReturn(true);
+        when(quoteRepository.findTop5ByBookIdOrderByAvgRatingDesc(1)).thenReturn(List.of());
 
-        List<Quote> quotes = recommendationService.recommendQuoteByBook(1);
+        List<Quote> result = recommendationService.recommendQuoteByBook(1);
 
-        assertTrue(quotes.isEmpty(), "У вас нет цитат");
+        assertThat(result).isEmpty();
+        verify(quoteRepository).findTop5ByBookIdOrderByAvgRatingDesc(1);
     }
-
-    // я моб, слава нейросетям, тесты в рот ебал писать
 }

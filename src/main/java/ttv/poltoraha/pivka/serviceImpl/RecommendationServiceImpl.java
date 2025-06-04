@@ -10,19 +10,15 @@ import ttv.poltoraha.pivka.entity.Book;
 import ttv.poltoraha.pivka.entity.Quote;
 import ttv.poltoraha.pivka.entity.Reading;
 import ttv.poltoraha.pivka.repository.BookRepository;
+import ttv.poltoraha.pivka.repository.QuoteRepository;
 import ttv.poltoraha.pivka.repository.ReaderRepository;
 import ttv.poltoraha.pivka.repository.ReadingRepository;
 import ttv.poltoraha.pivka.service.AuthorService;
 import ttv.poltoraha.pivka.service.RecommendationService;
 import util.MyUtility;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,6 +30,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final AuthorService authorService;
     private final BookRepository bookRepository;
     private final ReadingRepository readingRepository;
+    private final QuoteRepository quoteRepository;
 
     @Override
     public List<Author> recommendAuthor(String username) {
@@ -134,22 +131,10 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     @Override
-    public List<Quote> recommendQuoteByBook(Integer book_id) {
-        if (!bookRepository.existsById(book_id)) {
-            throw new EntityNotFoundException(String.format("Entity book with id = %s was not found", book_id));
+    public List<Quote> recommendQuoteByBook(Integer bookId) {
+        if (!bookRepository.existsById(bookId)) {
+            throw new EntityNotFoundException(String.format("Entity book with id = %d was not found", bookId));
         }
-
-        val readings = readingRepository.findAllByBook_id(book_id);
-
-        val topReader = readings.stream()
-                .map(Reading::getReader)
-                .sorted(Comparator.comparingInt(reader -> reader.getReadings().size()))
-                .limit(5)
-                .toList();
-
-        return topReader.stream()
-                .flatMap(reader -> reader.getQuotes().stream())
-                .filter(quote -> Objects.equals(quote.getBook().getId(), book_id))
-                .toList();
+        return quoteRepository.findTop5ByBookIdOrderByAvgRatingDesc(bookId);
     }
 }
