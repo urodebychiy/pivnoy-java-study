@@ -1,66 +1,103 @@
 package ttv.poltoraha.pivka.app.serviceImpl;
 
-import lombok.val;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-import ttv.poltoraha.pivka.controller.ReaderController;
-import ttv.poltoraha.pivka.entity.Reader;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import ttv.poltoraha.pivka.entity.Book;
+import ttv.poltoraha.pivka.entity.Quote;
+import ttv.poltoraha.pivka.repository.BookRepository;
+import ttv.poltoraha.pivka.repository.QuoteRepository;
 import ttv.poltoraha.pivka.repository.ReaderRepository;
-import ttv.poltoraha.pivka.service.ReaderService;
-import ttv.poltoraha.pivka.service.RecommendationService;
+import ttv.poltoraha.pivka.repository.ReadingRepository;
+import ttv.poltoraha.pivka.service.AuthorService;
+import ttv.poltoraha.pivka.serviceImpl.RecommendationServiceImpl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static ttv.poltoraha.pivka.app.util.TestConst.*;
+import java.util.List;
 
-@SpringBootTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY) // Используйте H2 вместо реальной БД
-@Transactional // Обеспечивает откат транзакций после каждого теста
-public class RecommendationServiceImplTest {
-    @Autowired
-    private RecommendationService recommendationService;
-    @Autowired
-    private ReaderService readerService;
-    @Autowired
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class RecommendationServiceImplTest {
+
+    @Mock
     private ReaderRepository readerRepository;
-    @Autowired
-    private ReaderController readerController;
+
+    @Mock
+    private AuthorService authorService;
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @Mock
+    private ReadingRepository readingRepository;
+
+    @Mock
+    private QuoteRepository quoteRepository;
+
+    @InjectMocks
+    private RecommendationServiceImpl recommendationService;
+
+    private Book book;
+    private Quote quote1;
+    private Quote quote2;
 
     @BeforeEach
-    public void setUp() {
-        val reader = new Reader();
-        reader.setUsername("MY_USERNAME");
-        reader.setPassword("132");
+    void setUp() {
+        book = new Book();
+        book.setId(1);
 
-        readerRepository.save(reader);
+        quote1 = new Quote();
+        quote1.setId(1);
+        quote1.setBook(book);
+        quote1.setAvgRating(4.5);
 
-        readerService.addFinishedBook(USERNAME, 1);
-        readerService.addFinishedBook(USERNAME, 2);
-        readerService.addFinishedBook(USERNAME, 3);
-        readerService.addFinishedBook(USERNAME, 6);
-        readerService.addFinishedBook(USERNAME, 7);
-        readerService.addFinishedBook(USERNAME, 8);
-        readerService.addFinishedBook(USERNAME, 9);
-
-        readerController.addQuote(USERNAME, 1, "Quote");
+        quote2 = new Quote();
+        quote2.setId(2);
+        quote2.setBook(book);
+        quote2.setAvgRating(3.0);
     }
 
     @Test
-    public void checkRecommendAuthor() {
-        val authors = recommendationService.recommendAuthor(USERNAME);
+    void recommendQuoteByBook_Success_ReturnsSortedQuotes() {
+        when(bookRepository.existsById(1)).thenReturn(true);
+        when(quoteRepository.findTop5ByBookIdOrderByAvgRatingDesc(1)).thenReturn(List.of(quote1, quote2));
 
-        // todo эта залупа возвращает 3 из-за того, что надо эти ебучие книги и авторов фиксить
-        // там столько ёбани, что просто скипаю. Если бы книг, авторов было бы больше и они бы не повторялись - всё ок бы работало
-        assertEquals(authors.size(), 3);
+        List<Quote> result = recommendationService.recommendQuoteByBook(1);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getId()).isEqualTo(1);
+        assertThat(result.get(0).getAvgRating()).isEqualTo(4.5);
+        assertThat(result.get(1).getId()).isEqualTo(2);
+        assertThat(result.get(1).getAvgRating()).isEqualTo(3.0);
+        verify(quoteRepository).findTop5ByBookIdOrderByAvgRatingDesc(1);
     }
 
     @Test
-    public void checkRecommendQuote() {
-        val quotes = recommendationService.recommendQuoteByBook(1);
+    void recommendQuoteByBook_BookNotFound_ThrowsException() {
+        when(bookRepository.existsById(1)).thenReturn(false);
 
-        assertEquals(quotes.size(), 1);
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> recommendationService.recommendQuoteByBook(1));
+        assertThat(exception.getMessage()).contains("book", "1");
+        verify(quoteRepository, never()).findTop5ByBookIdOrderByAvgRatingDesc(1);
+    }
+
+    @Test
+    void recommendQuoteByBook_NoQuotes_ReturnsEmptyList() {
+        when(bookRepository.existsById(1)).thenReturn(true);
+        when(quoteRepository.findTop5ByBookIdOrderByAvgRatingDesc(1)).thenReturn(List.of());
+
+        List<Quote> result = recommendationService.recommendQuoteByBook(1);
+
+        assertThat(result).isEmpty();
+        verify(quoteRepository).findTop5ByBookIdOrderByAvgRatingDesc(1);
     }
 }

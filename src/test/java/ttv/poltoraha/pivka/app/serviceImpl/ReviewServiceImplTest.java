@@ -1,102 +1,151 @@
 package ttv.poltoraha.pivka.app.serviceImpl;
 
 import jakarta.persistence.EntityNotFoundException;
-import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-import ttv.poltoraha.pivka.dao.request.ReviewRequestDto;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import ttv.poltoraha.pivka.entity.Book;
+import ttv.poltoraha.pivka.entity.Reader;
 import ttv.poltoraha.pivka.entity.Review;
+import ttv.poltoraha.pivka.entity.ReviewRating;
 import ttv.poltoraha.pivka.repository.BookRepository;
+import ttv.poltoraha.pivka.repository.ReaderRepository;
+import ttv.poltoraha.pivka.repository.ReviewRatingRepository;
 import ttv.poltoraha.pivka.repository.ReviewRepository;
+import ttv.poltoraha.pivka.service.BookService;
 import ttv.poltoraha.pivka.serviceImpl.ReviewServiceImpl;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static ttv.poltoraha.pivka.app.model.Models.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 
-@SpringBootTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY) // Используйте H2 вместо реальной БД
-@Transactional // Обеспечивает откат транзакций после каждого теста
-public class ReviewServiceImplTest {
-    @Autowired
-    private ReviewServiceImpl reviewService;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-    @Autowired
+
+@ExtendWith(MockitoExtension.class)
+class ReviewServiceImplTest {
+
+    @Mock
     private ReviewRepository reviewRepository;
 
-    @Autowired
+    @Mock
     private BookRepository bookRepository;
 
-    public final String TEXT_UPDATED = "TEXT_UPDATE";
+    @Mock
+    private BookService bookService;
 
+    @Mock
+    private ReviewRatingRepository reviewRatingRepository;
+
+    @Mock
+    private ReaderRepository readerRepository;
+
+    @InjectMocks
+    private ReviewServiceImpl reviewService;
+
+    private Reader reader;
+    private Review review;
     private Book book;
-    private ReviewRequestDto reviewRequestDto;
-    private Review reviewEntity;
 
     @BeforeEach
-    public void setUp() {
-        book = bookRepository.findById(1).get();
-        reviewEntity = getReview(book);
+    void setUp() {
+        reader = new Reader();
+        reader.setUsername("testUser");
 
-        reviewRequestDto = getReviewRequestDto(1);
+        book = new Book();
+        book.setId(1);
+
+        review = new Review();
+        review.setId(1);
+        review.setBook(book);
+        review.setReaderUsername("testUser");
+        review.setReviewRatings(new ArrayList<>());
     }
 
     @Test
-    public void testCreateReview_Success() {
-        val beforeUpdateReviewSize = reviewRepository.findAll().size();
+    void createReviewRating_Success() {
+        when(readerRepository.findByUsername("testUser")).thenReturn(Optional.of(reader));
+        when(reviewRepository.findById(1)).thenReturn(Optional.of(review));
+        when(reviewRatingRepository.findByReaderUsernameAndReviewId("testUser", 1)).thenReturn(Optional.empty());
+        when(reviewRatingRepository.save(any(ReviewRating.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        reviewService.createReview(reviewRequestDto);
-        val afterCreateReviewSize = reviewRepository.findAll().size();
-        // Проверяем, что отзыв был сохранен в базе данных
-        assertNotEquals(beforeUpdateReviewSize, afterCreateReviewSize);
+        reviewService.createReviewRating("testUser", 1, 5);
+
+        verify(reviewRatingRepository).save(any(ReviewRating.class));
+        verify(reviewRepository).save(review);
+        assertThat(review.getReviewRatings()).hasSize(1);
+        assertThat(review.getReviewRatings().get(0).getRating()).isEqualTo(5);
     }
 
     @Test
-    public void testCreateReview_BookNotFound() {
-        reviewRequestDto.setBookId(999); // Устанавливаем несуществующий ID книги
+    void createReviewRating_InvalidRating_ThrowsException() {
+//        when(readerRepository.findByUsername("testUser")).thenReturn(Optional.of(reader));
+//        when(reviewRepository.findById(1)).thenReturn(Optional.of(review));
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
-            reviewService.createReview(reviewRequestDto);
-        });
-    }
-//
-    @Test
-    public void testDeleteReview() {
-        // Сначала создаем отзыв
-        val updateReviewId = reviewRepository.save(reviewEntity).getId();
-
-        // Удаляем отзыв
-        reviewService.deleteReview(updateReviewId);
-
-        // Проверяем, что отзыв был удален
-        assertFalse(reviewRepository.existsById(updateReviewId));
-    }
-//
-    @Test
-    public void testUpdateReview_Success() {
-        // Сначала создаем отзыв
-        val reviewId = reviewRepository.save(reviewEntity).getId();
-
-        // Обновляем отзыв
-        reviewRequestDto.setText(TEXT_UPDATED);
-        reviewRequestDto.setRating(4);
-        reviewService.updateReview(reviewId, reviewRequestDto);
-
-        // Проверяем, что отзыв был обновлен
-        Review updatedReview = reviewRepository.findById(reviewId).orElseThrow();
-        assertEquals(updatedReview.getText(), TEXT_UPDATED);
-        assertEquals(updatedReview.getRating(), 4);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> reviewService.createReviewRating("testUser", 1, 0));
+        assertThat(exception.getMessage()).isEqualTo("Rating must be between 1 and 5");
     }
 
     @Test
-    public void testUpdateReview_ReviewNotFound() {
-        assertThrows(EntityNotFoundException.class, () -> {
-            reviewService.updateReview(999, reviewRequestDto); // Используем несуществующий ID
-        });
+    void createReviewRating_AlreadyRated_ThrowsException() {
+        ReviewRating existingRating = new ReviewRating();
+        existingRating.setReader(reader);
+        existingRating.setReview(review);
+        existingRating.setRating(3);
+
+        when(readerRepository.findByUsername("testUser")).thenReturn(Optional.of(reader));
+        when(reviewRepository.findById(1)).thenReturn(Optional.of(review));
+        when(reviewRatingRepository.findByReaderUsernameAndReviewId("testUser", 1)).thenReturn(Optional.of(existingRating));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> reviewService.createReviewRating("testUser", 1, 4));
+        assertThat(exception.getMessage()).isEqualTo("User has already rated this review");
+    }
+
+    @Test
+    void updateAvgRating_Success() {
+        ReviewRating rating1 = new ReviewRating();
+        rating1.setRating(3);
+        ReviewRating rating2 = new ReviewRating();
+        rating2.setRating(5);
+        review.getReviewRatings().addAll(List.of(rating1, rating2));
+
+        when(reviewRepository.findById(1)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+
+        reviewService.updateAvgRating(1);
+
+        verify(reviewRepository).save(review);
+        assertThat(review.getAvgRating()).isEqualTo(4.0);
+    }
+
+    @Test
+    void updateAvgRating_NoRatings_SetsZero() {
+        when(reviewRepository.findById(1)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(review)).thenReturn(review);
+
+        reviewService.updateAvgRating(1);
+
+        verify(reviewRepository).save(review);
+        assertThat(review.getAvgRating()).isEqualTo(0.0);
+    }
+
+    @Test
+    void createReviewRating_ReviewNotFound_ThrowsException() {
+//        when(readerRepository.findByUsername("testUser")).thenReturn(Optional.of(reader));
+        when(reviewRepository.findById(1)).thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> reviewService.createReviewRating("testUser", 1, 4));
+        assertThat(exception.getMessage()).contains("review", "1");
     }
 }
