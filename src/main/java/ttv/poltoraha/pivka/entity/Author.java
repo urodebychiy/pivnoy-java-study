@@ -29,4 +29,7 @@ public class Author {
     @OneToMany(mappedBy="author")
     @ToString.Exclude
     private List<Book> books;
+
+    @OneToMany(mappedBy = "author")
+    private List<Pivo> pivos;
 }

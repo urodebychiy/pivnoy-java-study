@@ -5,7 +5,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ttv.poltoraha.pivka.entity.*;
+import ttv.poltoraha.pivka.entity.Author;
+import ttv.poltoraha.pivka.entity.Book;
+import ttv.poltoraha.pivka.entity.Quote;
+import ttv.poltoraha.pivka.entity.Reading;
 import ttv.poltoraha.pivka.repository.BookRepository;
 import ttv.poltoraha.pivka.repository.ReaderRepository;
 import ttv.poltoraha.pivka.repository.ReadingRepository;
@@ -13,7 +16,10 @@ import ttv.poltoraha.pivka.service.AuthorService;
 import ttv.poltoraha.pivka.service.RecommendationService;
 import util.MyUtility;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,18 +35,6 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final BookRepository bookRepository;
     private final ReadingRepository readingRepository;
 
-    /**
-     * Чё делает метод и чё он должен делать:
-     * 1. Пользак заходит на сайт, у него есть уже список прочитанных книг
-     * (это допущение, по-хорошему нужно и сценарий, когда у него нет прочитанных книг сделать тоже)
-     * 2. Он хочет получить рекомендацию по Авторам, какие его могут заинтересовать
-     * 3. Мы берём все его прочитанные книги. Отбираем 2 самых популярных тега среди них
-     * 4. Дальше ищем авторов с самым высоким рейтингом, у которых есть хотя бы одна книга с популярным тегом
-     * 5. 3 авторов рекомендуем по самому популярному тегу среди прочитанных, ещё 2х по второму по популярности
-     *
-     * @param username - уникальный идентификатор читателя, его логин
-     * @return список авторов для рекомендации. По-умолчанию это число 5, но по-хорошему такими параметрами надо управлять
-     */
     @Override
     public List<Author> recommendAuthor(String username) {
         val reader = MyUtility.findEntityById(readerRepository.findByUsername(username), "reader", username);
@@ -85,20 +79,63 @@ public class RecommendationServiceImpl implements RecommendationService {
      */
     @Override
     public List<Book> recommendBook(String username) {
-        return null;
+        val reader = MyUtility.findEntityById(readerRepository.findByUsername(username), "reader", username);
+
+        val readBooks = reader.getReadings().stream()
+                .map(Reading::getBook)
+                .toList(); // List<Book>
+
+        val mostPopularTags = readBooks.stream()
+                .flatMap(book -> book.getTags().stream().map(String::toLowerCase))
+                .collect(Collectors.groupingBy(tag -> tag, Collectors.counting()))
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(2)
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (mostPopularTags.isEmpty()) {
+            // todo: по-хорошему прокинуть ошибку через ControllerAdvice
+            return Collections.emptyList();
+        }
+
+        val topBooksFirstTag = bookRepository.findByTagsContaining(mostPopularTags.get(0)).stream()
+                .filter(book -> book.getRating() != null)
+                .filter(book -> !readBooks.contains(book))
+                .sorted(Comparator.comparing(Book::getRating).reversed())
+                .limit(3)
+                .toList(); // List<Book>
+
+        val topBooksSecondTag = mostPopularTags.size() > 1
+                ? bookRepository.findByTagsContaining(mostPopularTags.get(1)).stream()
+                .filter(book -> book.getRating() != null)
+                .filter(book -> !readBooks.contains(book))
+                .sorted(Comparator.comparing(Book::getRating).reversed())
+                .limit(2)
+                .toList() // List<Book>
+                : new ArrayList<Book>();
+
+        // 6. Объединяем результаты в ArrayList<Book>
+        val result = new ArrayList<Book>();
+        result.addAll(topBooksFirstTag);
+        result.addAll(topBooksSecondTag);
+
+        // Удаляем дубликаты вручную
+        val distinctResult = new ArrayList<Book>();
+        val seenIds = new HashSet<Integer>();
+        for (Book book : result) {
+            if (seenIds.add(book.getId())) {
+                distinctResult.add(book);
+            }
+        }
+
+        return Collections.unmodifiableList(distinctResult);
     }
 
-    /**
-     * Пользователь хочет перед тем как начать читать книгу, посмотреть её цитаты (мало ли что зацепит)
-     * Мы берём книгу. Берём все цитаты по ней.
-     * Фильтруем пользователей, в предпочтении пользователи, у которых наибольшее кол-во прочитанных книг
-     * Выбираем 5 самых подходящих цитат.
-     *
-     * @return список подходящих цитат для определённой книги
-     */
     @Override
     public List<Quote> recommendQuoteByBook(Integer book_id) {
-        if (bookRepository.existsById(book_id)) {
+        if (!bookRepository.existsById(book_id)) {
             throw new EntityNotFoundException(String.format("Entity book with id = %s was not found", book_id));
         }
 

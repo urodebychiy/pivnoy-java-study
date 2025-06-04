@@ -7,23 +7,23 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Entity(name="review")
-@Data
-@Builder
-@AllArgsConstructor
+@Entity
+@Getter
+@Setter
 @NoArgsConstructor
-public class Review {
+@AllArgsConstructor
+public class Pivo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    private String readerUsername;
+    private String name;
+    private String description;
+
     @ManyToOne
-    @JoinColumn(name = "book_id")
-    private Book book;
-    private String text;
-    private Integer rating;
+    @JoinColumn(name = "author_id")
+    private Author author;
 }

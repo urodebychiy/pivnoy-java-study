@@ -1,6 +1,6 @@
 package ttv.poltoraha.pivka.app.serviceImpl;
 
-import lombok.val;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,18 +8,30 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import ttv.poltoraha.pivka.controller.ReaderController;
+import ttv.poltoraha.pivka.entity.Author;
+import ttv.poltoraha.pivka.entity.Book;
+import ttv.poltoraha.pivka.entity.Quote;
 import ttv.poltoraha.pivka.entity.Reader;
+import ttv.poltoraha.pivka.entity.Reading;
+import ttv.poltoraha.pivka.repository.AuthorRepository;
+import ttv.poltoraha.pivka.repository.BookRepository;
 import ttv.poltoraha.pivka.repository.ReaderRepository;
+import ttv.poltoraha.pivka.repository.ReadingRepository;
 import ttv.poltoraha.pivka.service.ReaderService;
 import ttv.poltoraha.pivka.service.RecommendationService;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static ttv.poltoraha.pivka.app.util.TestConst.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static ttv.poltoraha.pivka.app.util.TestConst.USERNAME;
 
 @SpringBootTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY) // Используйте H2 вместо реальной БД
 @Transactional // Обеспечивает откат транзакций после каждого теста
-public class RecommendationServiceImplTest {
+class RecommendationServiceImplTest {
     @Autowired
     private RecommendationService recommendationService;
     @Autowired
@@ -27,40 +39,79 @@ public class RecommendationServiceImplTest {
     @Autowired
     private ReaderRepository readerRepository;
     @Autowired
+    private BookRepository bookRepository;
+    @Autowired
     private ReaderController readerController;
+    @Autowired
+    private AuthorRepository authorRepository;
+    @Autowired
+    private ReadingRepository readingRepository;
+
+    private Reader reader;
+    private Book book;
+    private Author author;
+    private Reading reading;
 
     @BeforeEach
-    public void setUp() {
-        val reader = new Reader();
-        reader.setUsername("MY_USERNAME");
+    void setUp() {
+
+        reader = new Reader();
+        reader.setUsername(USERNAME);
         reader.setPassword("132");
 
         readerRepository.save(reader);
 
+
+        author = new Author();
+        author.setId(1);
+
+        authorRepository.save(author);
+
+
+        book = new Book();
+        book.setId(1);
+        book.setAuthor(author);
+
+        bookRepository.save(book);
+
+
+        reading = new Reading();
+        reading.setReader(reader);
+        reading.setBook(book);
+
+        readingRepository.save(reading);
+
+
+
         readerService.addFinishedBook(USERNAME, 1);
-        readerService.addFinishedBook(USERNAME, 2);
-        readerService.addFinishedBook(USERNAME, 3);
-        readerService.addFinishedBook(USERNAME, 6);
-        readerService.addFinishedBook(USERNAME, 7);
-        readerService.addFinishedBook(USERNAME, 8);
-        readerService.addFinishedBook(USERNAME, 9);
 
-        readerController.addQuote(USERNAME, 1, "Quote");
+        readerController.addQuote(USERNAME, 1, "quote");
     }
 
     @Test
-    public void checkRecommendAuthor() {
-        val authors = recommendationService.recommendAuthor(USERNAME);
+    void checkRecommendQuote() {
+        List<Quote> quotes = recommendationService.recommendQuoteByBook(1);
 
-        // todo эта залупа возвращает 3 из-за того, что надо эти ебучие книги и авторов фиксить
-        // там столько ёбани, что просто скипаю. Если бы книг, авторов было бы больше и они бы не повторялись - всё ок бы работало
-        assertEquals(authors.size(), 3);
+        assertEquals(1, quotes.size(), "Ожидается одна цитата");
+        assertEquals("quote", quotes.get(0).getText(), "Текст цитаты должен быть 'quote'");
     }
 
     @Test
-    public void checkRecommendQuote() {
-        val quotes = recommendationService.recommendQuoteByBook(1);
-
-        assertEquals(quotes.size(), 1);
+    void whenBookDoesNotFound_thenThrowEntityNotFoundException() {
+        assertThatThrownBy(() -> recommendationService.recommendQuoteByBook(999))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Entity book with id = 999 was not found");
     }
+
+    @Test
+    void whenReaderHasNotQuotes_thenReturnEmptyList() {
+        reader.setQuotes(new ArrayList<>());
+        readerRepository.save(reader);
+
+        List<Quote> quotes = recommendationService.recommendQuoteByBook(1);
+
+        assertTrue(quotes.isEmpty(), "У вас нет цитат");
+    }
+
+    // я моб, слава нейросетям, тесты в рот ебал писать
 }
