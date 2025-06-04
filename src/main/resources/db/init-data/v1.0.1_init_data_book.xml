@@ -11,63 +11,54 @@
             <column name="genre" value="Роман"/>
             <column name="tags" value="Любовь, Лоли"/>
             <column name="author_id" value="1"/>
-            <column name="id" value="1"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Анна Каренина"/>
             <column name="genre" value="Роман"/>
             <column name="tags" value="Любовь, Лоли"/>
             <column name="author_id" value="2"/>
-            <column name="id" value="2"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Смерть Ивана Ильича"/>
             <column name="genre" value="Роман"/>
             <column name="tags" value="Смерть, Лоли"/>
             <column name="author_id" value="2"/>
-            <column name="id" value="3"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Идиот"/>
             <column name="genre" value="Роман"/>
             <column name="tags" value="Идиот, Лоли"/>
             <column name="author_id" value="3"/>
-            <column name="id" value="4"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Бесы"/>
             <column name="genre" value="Пьеса"/>
             <column name="tags" value="Пьеса, Лоли"/>
             <column name="author_id" value="3"/>
-            <column name="id" value="5"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Царъ"/>
             <column name="genre" value="Летопись"/>
             <column name="tags" value="Летопись, Лоли"/>
             <column name="author_id" value="4"/>
-            <column name="id" value="6"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Как правильно пить пиво на лавочке с девочкой"/>
             <column name="genre" value="Летопись"/>
             <column name="tags" value="Любовь, Лоли"/>
             <column name="author_id" value="9"/>
-            <column name="id" value="7"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Горгород"/>
             <column name="genre" value="Летопись"/>
             <column name="tags" value="Любовь, Лоли"/>
             <column name="author_id" value="10"/>
-            <column name="id" value="8"/>
         </insert>
         <insert tableName="BOOK">
             <column name="article" value="Хуйня какая-то"/>
             <column name="genre" value="Роман"/>
             <column name="tags" value="Смерть, Апостол"/>
             <column name="author_id" value="6"/>
-            <column name="id" value="9"/>
         </insert>
     </changeSet>
 
