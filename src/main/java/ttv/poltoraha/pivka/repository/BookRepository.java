@@ -10,6 +10,17 @@ import java.util.List;
 
 @Repository
 public interface BookRepository extends JpaRepository<Book, Integer> {
-    @Query("SELECT b FROM book b WHERE b.tags LIKE %:tag%")
-    List<Book> findByTagsContaining(@Param("tag") String tag);
+
+    @Query(value = """
+    SELECT b.*
+    FROM book b
+    JOIN author a ON b.author_id = a.id
+    WHERE a.full_name LIKE :fullName
+    AND a.avg_rating = (
+        SELECT MAX(a2.avg_rating)
+        FROM author a2
+        WHERE a2.full_name LIKE :fullName
+    )
+""", nativeQuery = true)
+    List<Book> findBooksByAuthorLastName(@Param("fullName") String fullName);
 }
